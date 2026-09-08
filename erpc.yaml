@@ -4,6 +4,17 @@ server:
   httpHostV4: "0.0.0.0"
   httpHostV6: "[::]"
   httpPort: 4000
+  # Browsers call these endpoints directly (the Pepino interface reads the
+  # chains through them), so preflight requests must be answered. Without this
+  # every read from a page fails with a CORS error and falls back to the
+  # public RPCs.
+  cors:
+    allowedOrigins: ["*"]
+    allowedMethods: ["GET", "POST", "OPTIONS"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-ERPC-Secret-Token"]
+    exposedHeaders: ["X-Request-ID"]
+    allowCredentials: false
+    maxAge: 3600
 
 projects:
   - id: main
