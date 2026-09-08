@@ -31,6 +31,18 @@ projects:
           scoreMultipliers:
             - overall: 0.1
 
+      # eRPC's built-in Alchemy chain map does not include Robinhood Chain
+      # mainnet (4663) yet, so declare that endpoint explicitly. The testnet
+      # (46630) is covered by the alchemy:// shorthand above.
+      - id: alchemy-robinhood
+        endpoint: "https://robinhood-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
+        evm:
+          chainId: 4663
+        tags: ["tier:fallback"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.1
+
       # Goldsky Edge RPC. Chain support is decided by the secret's plan:
       # eRPC probes eth_chainId per network and skips chains the plan lacks.
       - id: goldsky
