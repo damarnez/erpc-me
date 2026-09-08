@@ -143,6 +143,10 @@ projects:
         endpoint: "https://rpc.mainnet.chain.robinhood.com"
         evm:
           chainId: 4663
+          # Robinhood's own RPC answers eth_syncing with -32601 (method not
+          # found), which makes eRPC's state poller fail its bootstrap on
+          # every start. Treat the node as always synced instead.
+          skipSyncingCheck: true
         tags: ["tier:public"]
         routing:
           scoreMultipliers:
@@ -161,6 +165,10 @@ projects:
         endpoint: "https://rpc.testnet.chain.robinhood.com/rpc"
         evm:
           chainId: 46630
+          # Robinhood's own RPC answers eth_syncing with -32601 (method not
+          # found), which makes eRPC's state poller fail its bootstrap on
+          # every start. Treat the node as always synced instead.
+          skipSyncingCheck: true
         tags: ["tier:public"]
         routing:
           scoreMultipliers:
