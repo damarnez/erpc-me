@@ -23,7 +23,7 @@ projects:
       # - id: my-node
       #   endpoint: "${PRIMARY_RPC_URL}"
       #   evm:
-      #     chainId: 137
+      #     chainId: 8453
       #   tags: ["tier:primary"]
 
       # --- Fallback tier ------------------------------------------------------
@@ -51,6 +51,32 @@ projects:
         routing:
           scoreMultipliers:
             - overall: 0.1
+
+      # Goldsky Edge RPC. Chain support is decided by the secret's plan:
+      # eRPC probes eth_chainId per network and skips chains the plan lacks.
+      - id: goldsky
+        endpoint: "goldsky://${GOLDSKY_SECRET}"
+        tags: ["tier:fallback"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.1
+
+    # Declared networks get an alias, so /main/base works as well as
+    # /main/evm/8453. Chains not listed here are still served lazily on
+    # first request if a vendor supports them.
+    networks:
+      - architecture: evm
+        evm: { chainId: 8453 }
+        alias: base
+      - architecture: evm
+        evm: { chainId: 84532 }
+        alias: base-sepolia
+      - architecture: evm
+        evm: { chainId: 4663 }
+        alias: robinhood
+      - architecture: evm
+        evm: { chainId: 46630 }
+        alias: robinhood-testnet
 
     networkDefaults:
       failsafe:
