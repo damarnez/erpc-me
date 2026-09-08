@@ -10,3 +10,80 @@ metrics:
   hostV4: "0.0.0.0"
   hostV6: "[::]"
   port: 4001
+
+projects:
+  - id: main
+
+    upstreams:
+      # --- Primary tier -------------------------------------------------------
+      # Uncomment and point at your own node. While at least one "tier:primary"
+      # upstream is healthy, all traffic goes here and the vendors below are
+      # used only as fallback.
+      #
+      # - id: my-node
+      #   endpoint: "${PRIMARY_RPC_URL}"
+      #   evm:
+      #     chainId: 137
+      #   tags: ["tier:primary"]
+
+      # --- Fallback tier ------------------------------------------------------
+      # Vendor shorthand: one API key unlocks every chain the vendor supports.
+      # Networks are created lazily on the first request for each chain.
+      # Set the keys as environment variables on the Railway service.
+      # Remove any vendor you do not have a key for.
+      - id: alchemy
+        endpoint: "alchemy://${ALCHEMY_API_KEY}"
+        tags: ["tier:fallback"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.1
+
+      - id: drpc
+        endpoint: "drpc://${DRPC_API_KEY}"
+        tags: ["tier:fallback"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.1
+
+      - id: infura
+        endpoint: "infura://${INFURA_API_KEY}"
+        tags: ["tier:fallback"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.1
+
+    networkDefaults:
+      failsafe:
+        # eth_getLogs is heavy; give it more room and fewer hedges.
+        - matchMethod: "eth_getLogs|eth_getBlockReceipts"
+          timeout:
+            duration: 60s
+          retry:
+            maxAttempts: 2
+            delay: 100ms
+        - matchMethod: "*"
+          timeout:
+            duration: 30s
+          retry:
+            maxAttempts: 3          # each retry moves to the next upstream
+            delay: 50ms
+          hedge:
+            quantile: 0.7           # fire a backup request at p70 latency
+            maxCount: 1
+            minDelay: 100ms
+            maxDelay: 2s
+
+      selectionPolicy:
+        evalInterval: 15s
+        evalFunc: |
+          (upstreams, ctx) =>
+            upstreams
+              .removeCordoned()
+              .excludeIf(all(samplesAbove(10), errorRateAbove(0.7)))
+              .excludeIf(all(samplesAbove(10), throttleRateAbove(0.4)))
+              // Use primary upstreams while at least one is healthy;
+              // otherwise open the pool to the fallback vendors.
+              .preferTag('tier:primary', { minHealthy: 1, fallback: 'tier:fallback' })
+              .sortByScore(PREFER_FASTEST)
+              .stickyPrimary({ hysteresis: 0.30, minSwitchInterval: '30s' })
+              .probeExcluded({ sampleRate: 0.1, minSamples: 10, timeout: '10s' })
