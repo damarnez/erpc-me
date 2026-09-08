@@ -24,8 +24,8 @@ projects:
     upstreams:
       # --- Primary tier -------------------------------------------------------
       # Uncomment and point at your own node. While at least one "tier:primary"
-      # upstream is healthy, all traffic goes here and the vendors below are
-      # used only as fallback.
+      # upstream is healthy, all traffic goes here and the vendor and public
+      # tiers below are used only as fallback.
       #
       # - id: my-node
       #   endpoint: "${PRIMARY_RPC_URL}"
@@ -97,6 +97,84 @@ projects:
           scoreMultipliers:
             - overall: 0.1
 
+      # --- Public tier --------------------------------------------------------
+      # Keyless public RPCs, used only as a last resort. They stay in the pool
+      # so a request that fails on every vendor can still retry here, but the
+      # low score multiplier keeps them ranked behind Alchemy and Goldsky.
+      # Endpoints come from the official chain registry (chainid.network) and
+      # were checked with eth_chainId before being added.
+      - id: public-base
+        endpoint: "https://mainnet.base.org"
+        evm:
+          chainId: 8453
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-base-publicnode
+        endpoint: "https://base-rpc.publicnode.com"
+        evm:
+          chainId: 8453
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-base-sepolia
+        endpoint: "https://sepolia.base.org"
+        evm:
+          chainId: 84532
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-base-sepolia-publicnode
+        endpoint: "https://base-sepolia-rpc.publicnode.com"
+        evm:
+          chainId: 84532
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-robinhood
+        endpoint: "https://rpc.mainnet.chain.robinhood.com"
+        evm:
+          chainId: 4663
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-robinhood-publicnode
+        endpoint: "https://robinhood-rpc.publicnode.com"
+        evm:
+          chainId: 4663
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-robinhood-testnet
+        endpoint: "https://rpc.testnet.chain.robinhood.com/rpc"
+        evm:
+          chainId: 46630
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
+      - id: public-robinhood-testnet-publicnode
+        endpoint: "https://robinhood-sepolia-rpc.publicnode.com"
+        evm:
+          chainId: 46630
+        tags: ["tier:public"]
+        routing:
+          scoreMultipliers:
+            - overall: 0.02
+
     # Declared networks get an alias, so /main/base works as well as
     # /main/evm/8453. Chains not listed here are still served lazily on
     # first request if a vendor supports them.
@@ -144,8 +222,10 @@ projects:
               .excludeIf(all(samplesAbove(10), errorRateAbove(0.7)))
               .excludeIf(all(samplesAbove(10), throttleRateAbove(0.4)))
               // Use primary upstreams while at least one is healthy;
-              // otherwise open the pool to the fallback vendors.
-              .preferTag('tier:primary', { minHealthy: 1, fallback: 'tier:fallback' })
+              // otherwise open the pool to the fallback vendors plus the
+              // public tier. sortByScore ranks public last (overall: 0.02),
+              // so it only serves retries and hedges the vendors miss.
+              .preferTag('tier:primary', { minHealthy: 1, fallback: ['tier:fallback', 'tier:public'] })
               .sortByScore(PREFER_FASTEST)
               .stickyPrimary({ hysteresis: 0.30, minSwitchInterval: '30s' })
               .probeExcluded({ sampleRate: 0.1, minSamples: 10, timeout: '10s' })
