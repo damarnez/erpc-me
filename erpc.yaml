@@ -23,24 +23,9 @@ projects:
       # --- Fallback tier ------------------------------------------------------
       # Vendor shorthand: one API key unlocks every chain the vendor supports.
       # Networks are created lazily on the first request for each chain.
-      # Set the keys as environment variables on the Railway service.
-      # Remove any vendor you do not have a key for.
+      # Set ALCHEMY_API_KEY and GOLDSKY_SECRET as variables on the Railway service.
       - id: alchemy
         endpoint: "alchemy://${ALCHEMY_API_KEY}"
-        tags: ["tier:fallback"]
-        routing:
-          scoreMultipliers:
-            - overall: 0.1
-
-      - id: drpc
-        endpoint: "drpc://${DRPC_API_KEY}"
-        tags: ["tier:fallback"]
-        routing:
-          scoreMultipliers:
-            - overall: 0.1
-
-      - id: infura
-        endpoint: "infura://${INFURA_API_KEY}"
         tags: ["tier:fallback"]
         routing:
           scoreMultipliers:
